@@ -7,7 +7,9 @@ Tiêu chí lọc:
    - Đồ thị Ngày (1D): Histogram đổi màu, Đường xanh (MACD) hướng lên đường cam (Signal).
 2. ĐIỀU KIỆN CÒN LẠI (CŨ):
    - Đồ thị Tuần (1W): Đường xanh (MACD) cắt lên đường cam (Signal).
-Thêm cột 'Điều kiện lọc' trong bảng kết quả để phân loại rõ ràng.
+Thêm cột 'ĐK Lọc' trong bảng kết quả để phân loại ngắn gọn (tối ưu hiển thị điện thoại).
+Thứ tự cột: Mã CP -> ĐK Lọc -> Xếp hạng kỹ thuật -> Đánh giá MA / Dao động -> Link TradingView...
+Sắp xếp: ĐK Lọc -> Xếp hạng kỹ thuật -> RSI.
 """
 
 import sys
@@ -87,7 +89,7 @@ class TradingViewScreener:
         - Điều kiện 1 (cũ): Tuần MACD cắt lên Signal
         - Điều kiện 2 (mới): Tuần MACD hướng lên & nằm trên Signal, Hist đổi màu;
                              Ngày Hist đổi màu, MACD hướng lên Signal
-        Phân loại rõ vào cột 'Điều kiện lọc'.
+        Phân loại rõ vào cột 'ĐK Lọc'.
         """
         scan_url = "https://scanner.tradingview.com/vietnam/scan"
         payload = {
@@ -168,13 +170,6 @@ class TradingViewScreener:
                         cond_old = True
 
                 # 2. KIỂM TRA ĐIỀU KIỆN 2 (ĐIỀU KIỆN MỚI):
-                # - Khung Tuần (1W):
-                #   + Đường xanh hướng lên: m_w > m_w1
-                #   + Nằm trên đường cam: m_w > s_w
-                #   + Histogram tuần đổi màu: h_w1 <= 0 và h_w > 0 (đổi sang xanh) HOẶC h_w > h_w1 (xanh nhạt -> xanh đậm)
-                # - Khung Ngày (1D):
-                #   + MACD Histogram đổi màu (color_d != color_d1)
-                #   + Đường xanh hướng lên đường cam (m_d > m_d1 và h_d > h_d1)
                 cond_new = False
                 day_status_desc = ""
                 if (m_w is not None and m_w1 is not None and s_w is not None and h_w is not None and h_w1 is not None):
@@ -193,28 +188,33 @@ class TradingViewScreener:
                             if day_hist_change and day_green_up:
                                 cond_new = True
                                 if m_d <= s_d:
-                                    day_status_desc = f"{c_d1} ➔ {c_d} (Dưới cam hướng lên)"
+                                    day_status_desc = f"{c_d1} ➔ {c_d} (Dưới cam)"
                                 else:
-                                    day_status_desc = f"{c_d1} ➔ {c_d} (Trên cam hướng lên)"
+                                    day_status_desc = f"{c_d1} ➔ {c_d} (Trên cam)"
 
-                # Phân loại vào cột 'Điều kiện lọc'
+                # Phân loại ngắn gọn vào cột 'ĐK Lọc' (tối ưu hiển thị điện thoại)
                 if cond_old and cond_new:
-                    filter_cond_label = "Thỏa mãn cả 2 điều kiện"
+                    filter_cond_label = "🟢 Cả 2 ĐK"
+                    cond_rank = 1
                 elif cond_new:
-                    filter_cond_label = "ĐK mới (Tuần MACD > Signal + Ngày hướng lên)"
+                    filter_cond_label = "🔵 ĐK mới"
+                    cond_rank = 2
                 elif cond_old:
-                    filter_cond_label = "ĐK còn lại (Tuần MACD cắt lên Signal)"
+                    filter_cond_label = "🟠 ĐK cũ"
+                    cond_rank = 3
                 else:
                     continue  # Không thỏa mãn điều kiện nào thì bỏ qua
 
                 tv_link = f"https://vn.tradingview.com/chart/xKsA49eB/?symbol=HOSE:{symbol}"
 
+                # Cột 'Đánh giá MA / Dao động' và 'Link TradingView' đặt ngay sau 'Xếp hạng kỹ thuật'
                 records.append({
                     "Mã CP": symbol,
-                    "Điều kiện lọc": filter_cond_label,
+                    "ĐK Lọc": filter_cond_label,
+                    "_cond_rank": cond_rank,
                     "Xếp hạng kỹ thuật": rec_str,
                     "Đánh giá MA / Dao động": ma_osc_desc,
-                    "RSI": round(rsi, 2) if rsi is not None else 0,
+                    "Link TradingView": tv_link,
                     "Giá (VNĐ)": close,
                     "Thay đổi (%)": round(change, 2) if change is not None else 0.0,
                     "Khối lượng": int(volume) if volume is not None else 0,
@@ -225,21 +225,16 @@ class TradingViewScreener:
                     "Signal (1D)": round(s_d, 2) if s_d is not None else 0,
                     "Histogram (1D)": round(h_d, 2) if h_d is not None else 0,
                     "Chi tiết Ngày": day_status_desc if day_status_desc else "N/A",
-                    "Tên Công Ty": name,
-                    "Link TradingView": tv_link
+                    "RSI": round(rsi, 2) if rsi is not None else 0,
+                    "Tên Công Ty": name
                 })
 
             df = pd.DataFrame(records)
             if not df.empty:
                 # Sắp xếp ưu tiên:
-                # 1. Nhóm điều kiện: Thỏa mãn cả 2 -> ĐK mới -> ĐK còn lại
-                # 2. Xếp hạng kỹ thuật: MUA MẠNH -> MUA -> TRUNG TÍNH -> BÁN -> BÁN MẠNH
+                # 1. Điều kiện lọc: Cả 2 ĐK (1) -> ĐK mới (2) -> ĐK cũ (3)
+                # 2. Xếp hạng kỹ thuật: MUA MẠNH (1) -> MUA (2) -> TRUNG TÍNH (3) -> BÁN (4) -> BÁN MẠNH (5)
                 # 3. RSI giảm dần
-                cond_order = {
-                    "Thỏa mãn cả 2 điều kiện": 1,
-                    "ĐK mới (Tuần MACD > Signal + Ngày hướng lên)": 2,
-                    "ĐK còn lại (Tuần MACD cắt lên Signal)": 3
-                }
                 rank_map = {
                     "MUA MẠNH": 1,
                     "MUA": 2,
@@ -247,7 +242,6 @@ class TradingViewScreener:
                     "BÁN": 4,
                     "BÁN MẠNH": 5
                 }
-                df["_cond_rank"] = df["Điều kiện lọc"].map(lambda x: cond_order.get(x, 99))
                 df["_rec_rank"] = df["Xếp hạng kỹ thuật"].map(lambda x: rank_map.get(x, 99))
                 df = df.sort_values(by=["_cond_rank", "_rec_rank", "RSI"], ascending=[True, True, False]).drop(columns=["_cond_rank", "_rec_rank"]).reset_index(drop=True)
 
@@ -263,10 +257,10 @@ class TradingViewScreener:
 def main():
     print("=" * 95)
     print("📈 TRADINGVIEW REALTIME STOCK SCREENER - VNINDEX (HOSE)")
-    print("🎯 BỘ LỌC ĐA ĐIỀU KIỆN:")
+    print("🎯 BỘ LỌC ĐA ĐIỀU KIỆN (Tối ưu cho hiển thị Điện thoại & Máy tính)")
     print("   1. [ĐIỀU KIỆN MỚI]: Tuần (1W) MACD Xanh hướng lên & trên Signal Cam, Histogram đổi màu;")
     print("                        Ngày (1D) Histogram đổi màu, MACD Xanh hướng lên Signal Cam.")
-    print("   2. [ĐIỀU KIỆN CÒN LẠI]: Tuần (1W) MACD Xanh cắt lên Signal Cam.")
+    print("   2. [ĐIỀU KIỆN CŨ]: Tuần (1W) MACD Xanh cắt lên Signal Cam.")
     print("=" * 95)
 
     screener = TradingViewScreener()
@@ -283,26 +277,25 @@ def main():
     print(f"\n🎉 Tìm thấy {len(df_result)} cổ phiếu thỏa mãn các tiêu chí lọc:")
     print("-" * 120)
     
+    # Thứ tự cột: Mã CP -> ĐK Lọc -> Xếp hạng kỹ thuật -> Đánh giá MA / Dao động -> Link TradingView...
     show_cols = [
         "Mã CP", 
-        "Điều kiện lọc",
+        "ĐK Lọc",
         "Xếp hạng kỹ thuật", 
+        "Đánh giá MA / Dao động",
         "Giá (VNĐ)", 
         "Thay đổi (%)", 
         "Khối lượng",
-        "MACD (1W)",
-        "Signal (1W)",
-        "MACD (1D)",
-        "Signal (1D)"
+        "Link TradingView"
     ]
     print(df_result[show_cols].to_string(index=False))
     print("-" * 120)
 
     # Thống kê số lượng
-    c_both = len(df_result[df_result["Điều kiện lọc"].str.contains("cả 2")])
-    c_new = len(df_result[df_result["Điều kiện lọc"].str.contains("ĐK mới")])
-    c_old = len(df_result[df_result["Điều kiện lọc"].str.contains("ĐK còn lại")])
-    print(f"\n📊 Phân bổ: {c_both} mã đạt cả 2 ĐK | {c_new} mã ĐK mới | {c_old} mã ĐK còn lại.")
+    c_both = len(df_result[df_result["ĐK Lọc"].str.contains("Cả 2")])
+    c_new = len(df_result[df_result["ĐK Lọc"].str.contains("ĐK mới")])
+    c_old = len(df_result[df_result["ĐK Lọc"].str.contains("ĐK cũ")])
+    print(f"\n📊 Phân bổ: {c_both} mã Cả 2 ĐK | {c_new} mã ĐK mới | {c_old} mã ĐK cũ.")
 
     output_csv = "ket_qua_loc_tradingview.csv"
     df_result.to_csv(output_csv, index=False, encoding="utf-8-sig")

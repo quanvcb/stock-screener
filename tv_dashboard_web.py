@@ -17,11 +17,11 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Tùy chỉnh CSS giao diện chuyên nghiệp
+# Tùy chỉnh CSS giao diện chuyên nghiệp và tối ưu cho mobile
 st.markdown("""
 <style>
     .main-header {
-        font-size: 24px;
+        font-size: 22px;
         font-weight: 700;
         color: #1E88E5;
         margin-bottom: 4px;
@@ -29,11 +29,11 @@ st.markdown("""
     .sub-header {
         font-size: 13px;
         color: #555;
-        margin-bottom: 16px;
+        margin-bottom: 14px;
         line-height: 1.5;
     }
     .block-container {
-        padding-top: 1.5rem;
+        padding-top: 1.2rem;
         padding-bottom: 2rem;
     }
 </style>
@@ -153,7 +153,7 @@ def fetch_screener_data(session):
 
                 rsi = round(d[20], 2) if d[20] is not None else 0.0
 
-                # 1. KIỂM TRA ĐIỀU KIỆN 1 (ĐIỀU KIỆN CÒN LẠI / CŨ):
+                # 1. KIỂM TRA ĐIỀU KIỆN 1 (ĐIỀU KIỆN CŨ / CÒN LẠI):
                 # Khung Tuần (1W): MACD cắt lên Signal (crosses_above)
                 cond_old = False
                 if m_w is not None and s_w is not None and m_w1 is not None and s_w1 is not None:
@@ -186,19 +186,19 @@ def fetch_screener_data(session):
                             if day_hist_change and day_green_up:
                                 cond_new = True
                                 if m_d <= s_d:
-                                    day_detail = f"{c_d1} ➔ {c_d} (Dưới cam hướng lên)"
+                                    day_detail = f"{c_d1} ➔ {c_d} (Dưới cam)"
                                 else:
-                                    day_detail = f"{c_d1} ➔ {c_d} (Trên cam hướng lên)"
+                                    day_detail = f"{c_d1} ➔ {c_d} (Trên cam)"
 
-                # Phân loại vào cột 'Điều kiện lọc'
+                # Phân loại ngắn gọn vào cột 'ĐK Lọc' (tối ưu hiển thị điện thoại)
                 if cond_old and cond_new:
-                    filter_cond_badge = "🟢 Đạt cả 2 điều kiện"
+                    filter_cond_badge = "🟢 Cả 2 ĐK"
                     filter_cond_key = "both"
                 elif cond_new:
-                    filter_cond_badge = "🔵 Điều kiện mới"
+                    filter_cond_badge = "🔵 ĐK mới"
                     filter_cond_key = "new"
                 elif cond_old:
-                    filter_cond_badge = "🟠 Điều kiện còn lại"
+                    filter_cond_badge = "🟠 ĐK cũ"
                     filter_cond_key = "old"
                 else:
                     continue  # Không thỏa mãn điều kiện nào thì bỏ qua
@@ -225,11 +225,11 @@ def fetch_screener_data(session):
                 
                 records.append({
                     "Mã CP": sym,
-                    "Điều kiện lọc": filter_cond_badge,
+                    "ĐK Lọc": filter_cond_badge,
                     "cond_key": filter_cond_key,
                     "Xếp hạng kỹ thuật": rec_badge,
                     "Đánh giá MA / Dao động": ma_osc_str,
-                    "RSI": rsi,
+                    "Xem Biểu đồ TV": tv_url,
                     "Giá (đ)": close,
                     "Thay đổi (%)": change,
                     "Khối lượng": vol,
@@ -240,8 +240,8 @@ def fetch_screener_data(session):
                     "Signal (1D)": round(s_d, 2) if s_d is not None else 0.0,
                     "Histogram (1D)": round(h_d, 2) if h_d is not None else 0.0,
                     "Chi tiết Ngày": day_detail if day_detail else "Tuần cắt lên",
-                    "Tên Doanh Nghiệp": desc,
-                    "Xem Biểu đồ TV": tv_url
+                    "RSI": rsi,
+                    "Tên Doanh Nghiệp": desc
                 })
             return pd.DataFrame(records)
     except Exception as e:
@@ -263,10 +263,10 @@ with st.sidebar:
     cond_filter_opt = st.selectbox(
         "🎯 Lọc theo điều kiện:",
         [
-            "Tất cả điều kiện", 
-            "Chỉ Điều kiện mới (Tuần MACD > Cam, Ngày hướng lên)", 
-            "Chỉ Điều kiện còn lại (Tuần MACD cắt lên Cam)", 
-            "Chỉ mã Đạt cả 2 điều kiện"
+            "Tất cả", 
+            "Chỉ ĐK mới (Tuần MACD > Cam, Ngày hướng lên)", 
+            "Chỉ ĐK cũ (Tuần MACD cắt lên Cam)", 
+            "Chỉ Cả 2 ĐK"
         ],
         index=0
     )
@@ -284,8 +284,8 @@ with st.sidebar:
 st.markdown('<div class="main-header">📈 BỘ LỌC CỔ PHIẾU REALTIME - TRADINGVIEW</div>', unsafe_allow_html=True)
 st.markdown(f"""
 <div class="sub-header">
-    • <b>[ĐIỀU KIỆN MỚI]:</b> Tuần (1W) MACD Xanh hướng lên & nằm trên Signal Cam, Histogram đổi màu | Ngày (1D) Histogram đổi màu, MACD Xanh hướng lên Signal Cam.<br>
-    • <b>[ĐIỀU KIỆN CÒN LẠI]:</b> Tuần (1W) MACD Xanh cắt lên Signal Cam.<br>
+    • <b>[ĐK MỚI]:</b> Tuần (1W) MACD Xanh hướng lên & nằm trên Signal Cam, Histogram đổi màu | Ngày (1D) Histogram đổi màu, MACD Xanh hướng lên Signal Cam.<br>
+    • <b>[ĐK CŨ]:</b> Tuần (1W) MACD Xanh cắt lên Signal Cam.<br>
     • Cập nhật: <b>{datetime.now().strftime("%H:%M:%S - %d/%m/%Y")}</b>
 </div>
 """, unsafe_allow_html=True)
@@ -297,11 +297,11 @@ if df_stocks.empty:
     st.warning("⚠️ Hiện tại không lấy được danh sách hoặc không có mã nào thỏa mãn điều kiện.")
 else:
     # Lọc theo bộ chọn điều kiện sidebar
-    if cond_filter_opt == "Chỉ Điều kiện mới (Tuần MACD > Cam, Ngày hướng lên)":
+    if "Chỉ ĐK mới" in cond_filter_opt:
         df_stocks = df_stocks[df_stocks["cond_key"].isin(["new", "both"])]
-    elif cond_filter_opt == "Chỉ Điều kiện còn lại (Tuần MACD cắt lên Cam)":
+    elif "Chỉ ĐK cũ" in cond_filter_opt:
         df_stocks = df_stocks[df_stocks["cond_key"].isin(["old", "both"])]
-    elif cond_filter_opt == "Chỉ mã Đạt cả 2 điều kiện":
+    elif "Chỉ Cả 2 ĐK" in cond_filter_opt:
         df_stocks = df_stocks[df_stocks["cond_key"] == "both"]
 
     # Lọc theo thanh khoản và tìm kiếm
@@ -310,9 +310,9 @@ else:
     if search_sym:
         df_stocks = df_stocks[df_stocks["Mã CP"].str.contains(search_sym)]
 
-    # Sắp xếp ưu tiên:
-    # 1. Nhóm điều kiện: Cả 2 -> ĐK mới -> ĐK còn lại
-    # 2. Xếp hạng kỹ thuật: Mua mạnh -> Mua -> Trung tính -> Bán -> Bán mạnh
+    # SẮP XẾP CỔ PHIẾU THEO THỨ TỰ:
+    # 1. Điều kiện lọc: Cả 2 ĐK (1) -> ĐK mới (2) -> ĐK cũ (3)
+    # 2. Xếp hạng kỹ thuật: Mua mạnh (1) -> Mua (2) -> Trung tính (3) -> Bán (4) -> Bán mạnh (5)
     # 3. RSI giảm dần
     cond_sort_map = {
         "both": 1,
@@ -335,22 +335,25 @@ else:
     with col1:
         st.metric("Tổng Số Cổ Phiếu Đạt", f"{len(df_stocks)} mã")
     with col2:
-        new_count = len(df_stocks[df_stocks["Điều kiện lọc"].str.contains("Điều kiện mới|Đạt cả 2")])
-        st.metric("🔵 Đạt Điều Kiện Mới", f"{new_count} mã")
+        both_count = len(df_stocks[df_stocks["ĐK Lọc"].str.contains("Cả 2")])
+        st.metric("🟢 Cả 2 ĐK", f"{both_count} mã")
     with col3:
-        old_count = len(df_stocks[df_stocks["Điều kiện lọc"].str.contains("Điều kiện còn lại|Đạt cả 2")])
-        st.metric("🟠 Đạt ĐK Còn Lại (Cũ)", f"{old_count} mã")
+        new_count = len(df_stocks[df_stocks["ĐK Lọc"].str.contains("ĐK mới|Cả 2")])
+        st.metric("🔵 ĐK Mới", f"{new_count} mã")
     with col4:
-        both_count = len(df_stocks[df_stocks["Điều kiện lọc"].str.contains("Đạt cả 2")])
-        st.metric("🟢 Đạt Cả 2 Điều Kiện", f"{both_count} mã")
+        old_count = len(df_stocks[df_stocks["ĐK Lọc"].str.contains("ĐK cũ|Cả 2")])
+        st.metric("🟠 ĐK Cũ", f"{old_count} mã")
 
     st.markdown("---")
 
-    # Thứ tự các cột hiển thị trong bảng
+    # Thứ tự các cột hiển thị trong bảng:
+    # Cột 'Đánh giá MA / Dao động' và 'Xem Biểu đồ TV' được chuyển ra SAU 'Xếp hạng kỹ thuật'
     col_order = [
         "Mã CP",
-        "Điều kiện lọc",
+        "ĐK Lọc",
         "Xếp hạng kỹ thuật",
+        "Đánh giá MA / Dao động",
+        "Xem Biểu đồ TV",
         "Giá (đ)",
         "Thay đổi (%)",
         "Khối lượng",
@@ -361,8 +364,6 @@ else:
         "Signal (1D)",
         "Chi tiết Ngày",
         "RSI",
-        "Đánh giá MA / Dao động",
-        "Xem Biểu đồ TV",
         "Tên Doanh Nghiệp"
     ]
 
@@ -370,21 +371,21 @@ else:
         df_stocks,
         column_order=col_order,
         column_config={
-            "Mã CP": st.column_config.TextColumn("Mã CP", width=80),
-            "Điều kiện lọc": st.column_config.TextColumn("Điều kiện lọc", width=170),
+            "Mã CP": st.column_config.TextColumn("Mã CP", width=75),
+            "ĐK Lọc": st.column_config.TextColumn("ĐK Lọc", width=95),
             "Xếp hạng kỹ thuật": st.column_config.TextColumn("Xếp hạng kỹ thuật", width=125),
-            "Giá (đ)": st.column_config.NumberColumn("Giá (đ)", format="%d đ", width=95),
-            "Thay đổi (%)": st.column_config.NumberColumn("Thay đổi (%)", format="%.2f %%", width=100),
-            "Khối lượng": st.column_config.NumberColumn("Khối lượng", format="%d CP", width=110),
-            "MACD (1W)": st.column_config.NumberColumn("MACD (1W)", format="%.2f", width=95),
-            "Signal (1W)": st.column_config.NumberColumn("Signal (1W)", format="%.2f", width=95),
-            "Histogram (1W)": st.column_config.NumberColumn("Histogram (1W)", format="%.2f", width=100),
-            "MACD (1D)": st.column_config.NumberColumn("MACD (1D)", format="%.2f", width=95),
-            "Signal (1D)": st.column_config.NumberColumn("Signal (1D)", format="%.2f", width=95),
-            "Chi tiết Ngày": st.column_config.TextColumn("Chi tiết Ngày", width=220),
-            "RSI": st.column_config.NumberColumn("RSI", format="%.2f", width=85),
-            "Đánh giá MA / Dao động": st.column_config.TextColumn("Đánh giá MA / Dao động", width=200),
+            "Đánh giá MA / Dao động": st.column_config.TextColumn("Đánh giá MA / Dao động", width=190),
             "Xem Biểu đồ TV": st.column_config.LinkColumn("TradingView", display_text="📊 Mở TV", width=95),
+            "Giá (đ)": st.column_config.NumberColumn("Giá (đ)", format="%d đ", width=90),
+            "Thay đổi (%)": st.column_config.NumberColumn("Thay đổi (%)", format="%.2f %%", width=95),
+            "Khối lượng": st.column_config.NumberColumn("Khối lượng", format="%d CP", width=105),
+            "MACD (1W)": st.column_config.NumberColumn("MACD (1W)", format="%.2f", width=90),
+            "Signal (1W)": st.column_config.NumberColumn("Signal (1W)", format="%.2f", width=90),
+            "Histogram (1W)": st.column_config.NumberColumn("Histogram (1W)", format="%.2f", width=95),
+            "MACD (1D)": st.column_config.NumberColumn("MACD (1D)", format="%.2f", width=90),
+            "Signal (1D)": st.column_config.NumberColumn("Signal (1D)", format="%.2f", width=90),
+            "Chi tiết Ngày": st.column_config.TextColumn("Chi tiết Ngày", width=180),
+            "RSI": st.column_config.NumberColumn("RSI", format="%.2f", width=80),
             "Tên Doanh Nghiệp": st.column_config.TextColumn("Tên Doanh Nghiệp", width=220)
         },
         use_container_width=True,
